@@ -10,6 +10,7 @@ import TableHead from "@material-ui/core/TableHead";
 import TableRow from "@material-ui/core/TableRow";
 
 
+
 const CollegeTable = ({ columns, data }: any) => {
   const filterTypes = React.useMemo(
     () => ({
@@ -29,7 +30,7 @@ const CollegeTable = ({ columns, data }: any) => {
 
   const defaultColumn = React.useMemo(
     () => ({
-      Header: undefined,
+      Header: '',
       Filter: DefaultColumnFilter
     }),
     []
@@ -44,12 +45,12 @@ const CollegeTable = ({ columns, data }: any) => {
     state,
     visibleColumns,
     preGlobalFilteredRows,
-    setGlobalFilter
+    setGlobalFilter,
   } = useTable({
       columns,
       data,
       defaultColumn,
-      filterTypes
+      filterTypes,
     },
     useFilters,
     useGlobalFilter,
