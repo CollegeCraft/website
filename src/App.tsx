@@ -1,24 +1,41 @@
 import React from 'react';
-import logo from './logo.svg';
 import './App.css';
+import { CollegeTable } from './CollegeTable';
+
+const data = [
+  { firstName: "jane", lastName: "doe", age: 20 },
+  { firstName: "john", lastName: "smith", age: 21 }
+];
+
+const columns = [
+  {
+    Header: "Name",
+    columns: [
+      {
+        Header: "First Name",
+        accessor: "firstName"
+      },
+      {
+        Header: "Last Name",
+        accessor: "lastName"
+      }
+    ]
+  },
+  {
+    Header: "Other Info",
+    columns: [
+      {
+        Header: "Age",
+        accessor: "age"
+      }
+    ]
+  }
+];
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <CollegeTable columns={columns} data={data} />
     </div>
   );
 }
