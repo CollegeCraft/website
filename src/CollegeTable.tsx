@@ -1,6 +1,7 @@
 import React from "react";
 
 import { useTable, useFilters, useGlobalFilter } from "react-table";
+import type { Column } from "react-table";
 import { DefaultColumnFilter, GlobalFilter } from "./Filter";
 
 import MaUTable from "@material-ui/core/Table";
@@ -8,10 +9,16 @@ import TableBody from "@material-ui/core/TableBody";
 import TableCell from "@material-ui/core/TableCell";
 import TableHead from "@material-ui/core/TableHead";
 import TableRow from "@material-ui/core/TableRow";
+import "./react-table-config.d";
+import { useCollegeData } from "./CollegeDataProvider"
 
 
+type TableProps<T extends object> = {
+  data: T[];
+  columns: Column<T>[];
+};
 
-const CollegeTable = ({ columns, data }: any) => {
+function CollegeTable<T extends object>({columns, data}: TableProps<T>) {
   const filterTypes = React.useMemo(
     () => ({
       text: (rows: any, id: any, filterValue: any) => {
@@ -104,6 +111,39 @@ const CollegeTable = ({ columns, data }: any) => {
 };
 
 
-export {
-  CollegeTable,
+function adminRateAccessor(row): string {
+  const percent = 100*row.latest.admissions.admission_rate.consumer_rate;
+  return `${percent.toFixed(2)}%`;
+}
+
+const columns = [
+  {
+    Header: "Recommended Colleges",
+    columns: [
+      {
+        id: "schoolname",
+        Header: "School Name",
+        accessor: "school.name"
+      },
+      {
+        id: "adminrate",
+        Header: "Admissions Rate",
+        accessor: adminRateAccessor
+      }
+    ]
+  }
+];
+
+export const CollegeTableContext = (props) => {
+  const res = useCollegeData();
+
+  if (res.status === 'LOADING') {
+    return <div>Loading</div>
+  }
+  if (res.status === 'ERROR') {
+    return <div>Unable to load item data</div>
+  }
+  return (
+    <CollegeTable columns={columns} data={res.data.results} />
+  )
 };
