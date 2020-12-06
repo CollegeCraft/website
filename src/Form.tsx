@@ -23,14 +23,11 @@ function ButtonsResult({ data, reset }) {
 }
 
 export type FormInputs = {
-  SAT_Math: number;
-  SAT_Reading: number;
-  SAT_Writing: number;
+  SAT_Math?: number;
+  SAT_Reading?: number;
+  SAT_Writing?: number;
 };
 export const defaultValues: FormInputs = {
-  SAT_Math: 720,
-  SAT_Reading: 720,
-  SAT_Writing: 720,
 };
 
 
@@ -59,6 +56,7 @@ export function CalculatorForm({ data, setData }: CalculatorFormProps) {
             <Controller
               as={
                 <Select>
+                  <MenuItem></MenuItem>
                   {scores.map((value: number) => (
                     <MenuItem key={`SAT-${name}-${value}`} value={value}>{value}</MenuItem>
                   ))}

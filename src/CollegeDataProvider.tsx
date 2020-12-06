@@ -4,10 +4,25 @@ import {CollegeTable} from "./CollegeTable"
 import type {FormInputs} from "./Form";
 
 
+/**
+  Utility function to extract elements from an object.
+
+  @param object - The javascript object from which to extra an element
+  @param path - The path to find
+
+  @returns The extract object at the path, or null if the path is undefined
+*/
+function get(object: any, path: string): any | null {
+  return path.split('.').reduce((xs, x) => ((xs != null && xs[x] != null) ? xs[x] : null), object);
+}
+
 /* Computes the admit rate */
 function adminRateAccessor(row): string {
-  const percent = 100*row.latest.admissions.admission_rate.consumer_rate;
-  return `${percent.toFixed(2)}%`;
+  const rate = get(row, "latest.admissions.admission_rate.consumer_rate");
+  if (rate == null) {
+    return "N/A";
+  }
+  return `${(100*(rate as number)).toFixed(2)}%`;
 }
 
 const columns = [
@@ -43,17 +58,20 @@ const columns = [
   }
 ];
 
-type School = "Target" | "Reach" | "Safety";
+type School = "Target" | "Reach" | "Safety" | "N/A";
 /** Generates the option to append to API request to retrieve the given set of schools. */
-function SATFilter(type: School, scores: FormInputs) {
+function SATFilter(type: School, {SAT_Math}: FormInputs) {
+  if (SAT_Math === undefined) {
+    return "";
+  }
   const prefix = "latest.admissions.sat_scores";
   switch (type) {
     case "Reach":
-      return `${prefix}.25th_percentile.math__range=${scores.SAT_Math}..800`
+      return `${prefix}.25th_percentile.math__range=${SAT_Math}..800`
     case "Safety":
-      return `${prefix}.75th_percentile.math__range=200..${scores.SAT_Math}`
+      return `${prefix}.75th_percentile.math__range=200..${SAT_Math}`
     case "Target":
-      return `${prefix}.25th_percentile.math__range=200..${scores.SAT_Math}&${prefix}.75th_percentile_math__range=${scores.SAT_Math}..800`;
+      return `${prefix}.25th_percentile.math__range=200..${SAT_Math}&${prefix}.75th_percentile_math__range=${SAT_Math}..800`;
   }
 }
 
@@ -103,6 +121,10 @@ function unflatten(obj) {
 /** Function that adds derived fields to the downloaded data */
 function postProcessResults(results: any[], {SAT_Math, SAT_Reading}: FormInputs): any[] {
   return results.map((value: any) => {
+    if (SAT_Math === undefined) {
+      value.type = "N/A" as const;
+      return value;
+    }
     if (value.latest.admissions.sat_scores["75th_percentile"].math < SAT_Math) {
       value.type = "Safety" as const
     }
