@@ -3,6 +3,7 @@ import { useForm, Controller } from "react-hook-form";
 
 import {
   Select, 
+  Checkbox,
   MenuItem,
 } from "@material-ui/core";
 
@@ -26,8 +27,16 @@ export type FormInputs = {
   SAT_Math?: number;
   SAT_Reading?: number;
   SAT_Writing?: number;
+  Reach: boolean;
+  Target: boolean;
+  Safety: boolean;
+  Unknown: boolean;
 };
 export const defaultValues: FormInputs = {
+  Reach: true,
+  Target: true,
+  Safety: true,
+  Unknown: false,
 };
 
 
@@ -46,14 +55,20 @@ export function CalculatorForm({ data, setData }: CalculatorFormProps) {
   }, {
     name: 'Writing', type: 'SAT_Writing' as const
   }];
+  const types = ["Reach" as const, "Target" as const, "Safety" as const, "Unknown" as const]
 
   return (
-    <form onSubmit={handleSubmit((data) => { setData(data); console.log(data) })} className="form">
+    <form onSubmit={handleSubmit((data) => {
+      setData(data);
+      console.log(data);
+    })} className="form">
       <div className="container">
         {menus.map(({name, type}) => (
           <section>
             <label>SAT {name} Score: </label>
             <Controller
+              name={type}
+              control={control}
               as={
                 <Select>
                   <MenuItem></MenuItem>
@@ -62,10 +77,23 @@ export function CalculatorForm({ data, setData }: CalculatorFormProps) {
                   ))}
                 </Select>
               }
-              name={type}
-              control={control}
             />
           </section>   
+        ))}
+        {types.map((type) => (
+          <section>
+            <label>{type}</label>
+            <Controller
+              name={type}
+              control={control}
+              render={(props) => (
+                <Checkbox
+                  onChange={(e) => props.onChange(e.target.checked)}
+                  checked={props.value}
+                />
+              )}
+            />
+          </section>
         ))}
       </div>
 

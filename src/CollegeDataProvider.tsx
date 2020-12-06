@@ -16,6 +16,10 @@ function get(object: any, path: string): any | null {
   return path.split('.').reduce((xs, x) => ((xs != null && xs[x] != null) ? xs[x] : null), object);
 }
 
+/** Cartesian product */
+const cartesian =
+  (...a) => a.reduce((a, b) => a.flatMap(d => b.map(e => [d, e].flat())));
+
 /* Computes the admit rate */
 function adminRateAccessor(row): string {
   const rate = get(row, "latest.admissions.admission_rate.consumer_rate");
@@ -58,22 +62,16 @@ const columns = [
   }
 ];
 
-type School = "Target" | "Reach" | "Safety" | "N/A";
-/** Generates the option to append to API request to retrieve the given set of schools. */
-function SATFilter(type: School, {SAT_Math}: FormInputs) {
-  if (SAT_Math === undefined) {
-    return "";
-  }
+type School = "Target" | "Reach" | "Safety" | "Unknown";
+const SATFilter = (() => {
   const prefix = "latest.admissions.sat_scores";
-  switch (type) {
-    case "Reach":
-      return `${prefix}.25th_percentile.math__range=${SAT_Math}..800`
-    case "Safety":
-      return `${prefix}.75th_percentile.math__range=200..${SAT_Math}`
-    case "Target":
-      return `${prefix}.25th_percentile.math__range=200..${SAT_Math}&${prefix}.75th_percentile_math__range=${SAT_Math}..800`;
-  }
-}
+  const percentiles = ["25th_percentile", "midpoint", "75th_percentile"];
+  const names = ["math", "critical_reading", "writing"];
+  const ranges = cartesian(percentiles, names).map(
+    ([percentile, name]) => `${prefix}.${percentile}.${name}__range=200..800`
+  );
+  return ranges.join("&")
+})();
 
 export type APIResponse = { status: "LOADING" } | { status: "LOADED"; pageCount: number, data: any } | {status: "ERROR"; error: any };
 
@@ -89,7 +87,7 @@ function apiUrl(pageSize: number, pageIndex: number, filter: FormInputs): string
   const sortField = "latest.admissions.admission_rate.consumer_rate"
   // Only pull down reach schools.
   // eg. https://api.data.gov/ed/collegescorecard/v1/schools.json?school.degrees_awarded.predominant=2,3&fields=id,school.name,2013.student.size
-  return `${baseUrl}.json?api_key=${APIKey}&_fields=${fields.join(',')}&per_page=${pageSize}&page=${pageIndex}&${SATFilter("Reach", filter)}&sort=${sortField}:asc`;
+  return `${baseUrl}.json?api_key=${APIKey}&_fields=${fields.join(',')}&per_page=${pageSize}&page=${pageIndex}&${SATFilter}&sort=${sortField}:asc`;
 }
 
 /**
@@ -117,25 +115,75 @@ function unflatten(obj) {
   return resultholder[""] || resultholder;
 };
 
+function maxSchool(a: School, b: School): School {
+  if (a === "Reach" || b === "Reach") {
+    return "Reach" as const
+  }
+  if (a === "Target" || b === "Target") {
+    return "Target" as const;
+  }
+  if (a === "Safety" || b === "Safety") {
+    return "Safety" as const;
+  }
+  return "Unknown" as const;
+}
+
+function compareSchool(school: any, key: string, value: number): School {
+  if (school.latest.admissions.sat_scores["75th_percentile"][key] < value) {
+    return "Safety" as const
+  }
+  if ( value <= school.latest.admissions.sat_scores["25th_percentile"][key]) {
+    return "Reach" as const
+  }
+  return "Target" as const
+}
+
+function getType(school: any, math: number | undefined, reading: number | undefined): School {
+  if (school.latest.admissions.admission_rate.consumer_rate < 0.15) {
+    return "Reach" as const;
+  }
+  if (math === undefined && reading === undefined) {
+    return "Unknown" as const;
+  }
+  if (reading !== undefined && math !== undefined) {
+    return maxSchool(
+      compareSchool(school, "critical_reading", reading),
+      compareSchool(school, "math", math)
+    );
+  }
+  if (reading !== undefined) {
+    return compareSchool(school, "critical_reading", reading);
+  }
+  if (math !== undefined) {
+    return compareSchool(school, "math", math);
+  }
+  return "Unknown" as const;
+}
+
 
 /** Function that adds derived fields to the downloaded data */
-function postProcessResults(results: any[], {SAT_Math, SAT_Reading}: FormInputs): any[] {
-  return results.map((value: any) => {
-    if (SAT_Math === undefined) {
-      value.type = "N/A" as const;
-      return value;
-    }
-    if (value.latest.admissions.sat_scores["75th_percentile"].math < SAT_Math) {
-      value.type = "Safety" as const
-    }
-    else if ( SAT_Math <= value.latest.admissions.sat_scores["25th_percentile"].math) {
-      value.type = "Reach" as const
-    }
-    else {
-      value.type = "Target" as const
-    }
+function postProcessResults<T>(results: T[], filter: FormInputs): (T & {type: School})[] {
+  const {
+    SAT_Math,
+    SAT_Reading,
+    Reach,
+    Target,
+    Safety,
+    Unknown,
+  } = filter;
+  const typedSchools = results.map((value: any) => {
+    value.type = getType(value, SAT_Math, SAT_Reading);
     return value;
   });
+  const filtered = typedSchools.filter((value) => {
+    return (
+      (Reach && value.type === "Reach") || 
+      (Target && value.type === "Target") ||
+      (Safety && value.type === "Safety") ||
+      (Unknown && value.type === "Unknown")
+    );
+  });
+  return filtered;
 }
 
 /**
@@ -151,10 +199,11 @@ async function apiRequest(pageSize: number, pageIndex: number, filter: FormInput
   try {
     const res = await fetch(url);
     const json = await res.json();
+    const postData = postProcessResults(json.results.map(unflatten), filter);
     return {
       status: "LOADED",
       pageCount: Math.ceil(json.metadata.total / json.metadata.per_page),
-      data: postProcessResults(json.results.map(unflatten), filter),
+      data: postData,
      } as APIResponse;
   } catch(err) {
     return { status: "ERROR", error: err } as APIResponse;
