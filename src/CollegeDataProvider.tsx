@@ -1,6 +1,7 @@
 import React from "react";
 import { baseUrl, APIKey } from "./constants";
 import {CollegeTable} from "./CollegeTable"
+import type {FormInputs} from "./Form";
 
 
 /* Computes the admit rate */
@@ -16,20 +17,49 @@ const columns = [
       {
         id: "schoolname",
         Header: "School Name",
-        accessor: "school.name"
+        accessor: "school.name",
+      },
+      {
+        id: "type",
+        Header: "Application Type",
+        accessor: "type",
       },
       {
         id: "adminrate",
         Header: "Admissions Rate",
-        accessor: adminRateAccessor
-      }
+        accessor: adminRateAccessor,
+      },
+      {
+        id: "satmath",
+        Header: "SAT 25th Math",
+        accessor: "latest.admissions.sat_scores.25th_percentile.math",
+      },
+      {
+        id: "satreading",
+        Header: "SAT 25th Reading",
+        accessor: "latest.admissions.sat_scores.25th_percentile.critical_reading",
+      },
     ]
   }
 ];
 
+type School = "Target" | "Reach" | "Safety";
+/** Generates the option to append to API request to retrieve the given set of schools. */
+function SATFilter(type: School, scores: FormInputs) {
+  const prefix = "latest.admissions.sat_scores";
+  switch (type) {
+    case "Reach":
+      return `${prefix}.25th_percentile.math__range=${scores.SAT_Math}..800`
+    case "Safety":
+      return `${prefix}.75th_percentile.math__range=200..${scores.SAT_Math}`
+    case "Target":
+      return `${prefix}.25th_percentile.math__range=200..${scores.SAT_Math}&${prefix}.75th_percentile_math__range=${scores.SAT_Math}..800`;
+  }
+}
+
 export type APIResponse = { status: "LOADING" } | { status: "LOADED"; pageCount: number, data: any } | {status: "ERROR"; error: any };
 
-function apiUrl(pageSize: number, pageIndex: number): string {
+function apiUrl(pageSize: number, pageIndex: number, filter: FormInputs): string {
   const fields = [
     'latest.admissions',
     'latest.earnings.10_yrs_after_entry.median',
@@ -38,8 +68,10 @@ function apiUrl(pageSize: number, pageIndex: number): string {
     'school.school_url',
     'school.name',
   ];
+  const sortField = "latest.admissions.admission_rate.consumer_rate"
+  // Only pull down reach schools.
   // eg. https://api.data.gov/ed/collegescorecard/v1/schools.json?school.degrees_awarded.predominant=2,3&fields=id,school.name,2013.student.size
-  return `${baseUrl}.json?api_key=${APIKey}&_fields=${fields.join(',')}&per_page=${pageSize}&page=${pageIndex}`;
+  return `${baseUrl}.json?api_key=${APIKey}&_fields=${fields.join(',')}&per_page=${pageSize}&page=${pageIndex}&${SATFilter("Reach", filter)}&sort=${sortField}:asc`;
 }
 
 /**
@@ -67,6 +99,23 @@ function unflatten(obj) {
   return resultholder[""] || resultholder;
 };
 
+
+/** Function that adds derived fields to the downloaded data */
+function postProcessResults(results: any[], {SAT_Math, SAT_Reading}: FormInputs): any[] {
+  return results.map((value: any) => {
+    if (value.latest.admissions.sat_scores["75th_percentile"].math < SAT_Math) {
+      value.type = "Safety" as const
+    }
+    else if ( SAT_Math <= value.latest.admissions.sat_scores["25th_percentile"].math) {
+      value.type = "Reach" as const
+    }
+    else {
+      value.type = "Target" as const
+    }
+    return value;
+  });
+}
+
 /**
   Makes a GET request as per the specified URL to retrieve the APIResponse.
 
@@ -75,22 +124,26 @@ function unflatten(obj) {
   @returns: A APIResponse depending on the URL response.
 
 */
-async function apiRequest(pageSize: number, pageIndex: number): Promise<APIResponse> {
-  const url = apiUrl(pageSize, pageIndex)
+async function apiRequest(pageSize: number, pageIndex: number, filter: FormInputs): Promise<APIResponse> {
+  const url = apiUrl(pageSize, pageIndex, filter)
   try {
     const res = await fetch(url);
     const json = await res.json();
     return {
       status: "LOADED",
-      pageCount: json.metadata.total,
-      data: json.results.map(unflatten),
+      pageCount: Math.ceil(json.metadata.total / json.metadata.per_page),
+      data: postProcessResults(json.results.map(unflatten), filter),
      } as APIResponse;
   } catch(err) {
     return { status: "ERROR", error: err } as APIResponse;
   }
 }
 
-export function CollegeDataProvider() {
+
+interface CollegeDataProviderProps {
+  filter: FormInputs
+}
+export function CollegeDataProvider({ filter }: CollegeDataProviderProps) {
   // We'll start our table without any data
   const [data, setData] = React.useState([])
   const [loading, setLoading] = React.useState(false)
@@ -105,14 +158,14 @@ export function CollegeDataProvider() {
     setLoading(true);
 
     // Grab Results.
-    const res = await apiRequest(pageSize, pageIndex);
+    const res = await apiRequest(pageSize, pageIndex, filter);
 
     if (fetchId === fetchIdRef.current && res.status === 'LOADED') {
       setData(res.data);
       setPageCount(res.pageCount);
       setLoading(false);
     }
-  }, []);
+  }, [filter]);
 
   return (
     <CollegeTable

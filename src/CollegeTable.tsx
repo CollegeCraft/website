@@ -36,7 +36,6 @@ export function CollegeTable({
       pageIndex,
       pageSize,
     },
-    visibleColumns,
   } = useTable({
       columns,
       data,
@@ -129,11 +128,13 @@ export function CollegeTable({
             setPageSize(Number(e.target.value))
           }}
         >
-          {[10, 20, 30, 40, 50].map(pageSize => (
-            <option key={pageSize} value={pageSize}>
-              Show {pageSize}
-            </option>
-          ))}
+          {[10, 20, 30, 40, 50]
+            .filter((value) => value <= controlledPageCount * pageSize)
+            .map(pageSize => (
+              <option key={pageSize} value={pageSize}>
+                Show {pageSize}
+              </option>
+            ))}
         </select>
       </div>
     </>
