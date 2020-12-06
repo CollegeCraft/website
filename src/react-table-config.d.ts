@@ -55,10 +55,10 @@ declare module "react-table" {
   export interface TableOptions<D extends object>
     extends
       // UseExpandedOptions<D>,
-      UseFiltersOptions<D>,
-      UseGlobalFiltersOptions<D>
+      // UseFiltersOptions<D>,
+      UsePaginationOptions<D>,
+      // UseGlobalFiltersOptions<D>
       // UseGroupByOptions<D>,
-      // UsePaginationOptions<D>,
       // UseResizeColumnsOptions<D>,
       // UseRowSelectOptions<D>,
       // UseRowStateOptions<D>,
@@ -81,10 +81,10 @@ declare module "react-table" {
     extends
       // UseColumnOrderInstanceProps<D>,
       // UseExpandedInstanceProps<D>,
-      UseFiltersInstanceProps<D>,
-      UseGlobalFiltersInstanceProps<D>,
+      // UseFiltersInstanceProps<D>,
+      UsePaginationInstanceProps<D>,
+      // UseGlobalFiltersInstanceProps<D>,
       // UseGroupByInstanceProps<D>,
-      // UsePaginationInstanceProps<D>,
       // UseRowSelectInstanceProps<D>,
       // UseRowStateInstanceProps<D>,
       // UseSortByInstanceProps<D>
@@ -94,10 +94,10 @@ declare module "react-table" {
     extends
       // UseColumnOrderState<D>,
       // UseExpandedState<D>,
-      UseFiltersState<D>,
-      UseGlobalFiltersState<D>
+      // UseFiltersState<D>,
+      UsePaginationState<D>,
+      // UseGlobalFiltersState<D>,
       // UseGroupByState<D>,
-      // UsePaginationState<D>,
       // UseResizeColumnsState<D>,
       // UseRowSelectState<D>,
       // UseRowStateState<D>,
@@ -106,27 +106,27 @@ declare module "react-table" {
         // hideLastRowWhenExpanding?: boolean;
       }
 
-  export interface ColumnInterface<D extends object = {}>
-    extends
-      UseFiltersColumnOptions<D>,
-      UseGlobalFiltersColumnOptions<D>
-      // UseGroupByColumnOptions<D>,
-      // UseResizeColumnsColumnOptions<D>,
-      // UseSortByColumnOptions<D>
-      {
-        // as?: ReactNode;
-        // absoluteSorting?: boolean;
-        // show?: boolean;
-        // Footer?: ReactNode;
-      }
+  // export interface ColumnInterface<D extends object = {}>
+  //   extends
+  //     // UseFiltersColumnOptions<D>,
+  //     // UseGlobalFiltersColumnOptions<D>,
+  //     // UseGroupByColumnOptions<D>,
+  //     // UseResizeColumnsColumnOptions<D>,
+  //     // UseSortByColumnOptions<D>
+  //     {
+  //       // as?: ReactNode;
+  //       // absoluteSorting?: boolean;
+  //       // show?: boolean;
+  //       // Footer?: ReactNode;
+  //     }
 
-  export interface ColumnInstance<D extends object = {}>
-    extends
-      UseFiltersColumnProps<D>
-      // UseGroupByColumnProps<D>,
-      // UseResizeColumnsColumnProps<D>,
-      // UseSortByColumnProps<D>
-      {}
+  // export interface ColumnInstance<D extends object = {}>
+  //   extends
+  //     // UseFiltersColumnProps<D>,
+  //     // UseGroupByColumnProps<D>,
+  //     // UseResizeColumnsColumnProps<D>,
+  //     // UseSortByColumnProps<D>
+  //     {}
 
   // export interface Cell<D extends object = {}, V = any>
   //   extends
