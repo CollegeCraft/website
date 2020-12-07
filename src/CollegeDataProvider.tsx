@@ -49,21 +49,41 @@ const columns = [
         accessor: adminRateAccessor,
       },
       {
-        id: "satmath",
-        Header: "SAT 25th Math",
-        accessor: "latest.admissions.sat_scores.25th_percentile.math",
+        Header: "SAT Math",
+        columns: [
+          {
+            id: "satmath25",
+            Header: "SAT 25th Math",
+            accessor: "latest.admissions.sat_scores.25th_percentile.math",
+          },
+          {
+            id: "satmath75",
+            Header: "SAT 75th Math",
+            accessor: "latest.admissions.sat_scores.75th_percentile.math",
+          },    
+        ]
       },
       {
-        id: "satreading",
-        Header: "SAT 25th Reading",
-        accessor: "latest.admissions.sat_scores.25th_percentile.critical_reading",
+        Header: "SAT Reading",
+        columns: [
+          {
+            id: "satreading25",
+            Header: "SAT 25th Reading",
+            accessor: "latest.admissions.sat_scores.25th_percentile.critical_reading",
+          },
+          {
+            id: "satreading75",
+            Header: "SAT 75th Reading",
+            accessor: "latest.admissions.sat_scores.75th_percentile.critical_reading",
+          },    
+        ]
       },
     ]
   }
 ];
 
 type School = "Target" | "Reach" | "Safety" | "Unknown";
-const SATFilter = (() => {
+const SATFilter = ({Unknown}: FormInputs) => {
   const prefix = "latest.admissions.sat_scores";
   const percentiles = ["25th_percentile", "midpoint", "75th_percentile"];
   const names = ["math", "critical_reading", "writing"];
@@ -71,7 +91,7 @@ const SATFilter = (() => {
     ([percentile, name]) => `${prefix}.${percentile}.${name}__range=200..800`
   );
   return ranges.join("&")
-})();
+};
 
 export type APIResponse = { status: "LOADING" } | { status: "LOADED"; pageCount: number, data: any } | {status: "ERROR"; error: any };
 
@@ -87,7 +107,7 @@ function apiUrl(pageSize: number, pageIndex: number, filter: FormInputs): string
   const sortField = "latest.admissions.admission_rate.consumer_rate"
   // Only pull down reach schools.
   // eg. https://api.data.gov/ed/collegescorecard/v1/schools.json?school.degrees_awarded.predominant=2,3&fields=id,school.name,2013.student.size
-  return `${baseUrl}.json?api_key=${APIKey}&_fields=${fields.join(',')}&per_page=${pageSize}&page=${pageIndex}&${SATFilter}&sort=${sortField}:asc`;
+  return `${baseUrl}.json?api_key=${APIKey}&_fields=${fields.join(',')}&per_page=${pageSize}&page=${pageIndex}&${SATFilter(filter)}&sort=${sortField}:asc`;
 }
 
 /**
@@ -139,7 +159,7 @@ function compareSchool(school: any, key: string, value: number): School {
 }
 
 function getType(school: any, math: number | undefined, reading: number | undefined): School {
-  if (school.latest.admissions.admission_rate.consumer_rate < 0.15) {
+  if (school.latest.admissions.admission_rate.consumer_rate < 0.10) {
     return "Reach" as const;
   }
   if (math === undefined && reading === undefined) {

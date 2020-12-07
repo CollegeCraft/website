@@ -36,7 +36,7 @@ export const defaultValues: FormInputs = {
   Reach: true,
   Target: true,
   Safety: true,
-  Unknown: false,
+  Unknown: true,
 };
 
 
@@ -55,6 +55,7 @@ export function CalculatorForm({ data, setData }: CalculatorFormProps) {
   }, {
     name: 'Writing', type: 'SAT_Writing' as const
   }];
+  // TODO(nautilik): Eventually let the user check stuff.
   const types = ["Reach" as const, "Target" as const, "Safety" as const, "Unknown" as const]
 
   return (
@@ -88,6 +89,7 @@ export function CalculatorForm({ data, setData }: CalculatorFormProps) {
               control={control}
               render={(props) => (
                 <Checkbox
+                  disabled={true}
                   onChange={(e) => props.onChange(e.target.checked)}
                   checked={props.value}
                 />
