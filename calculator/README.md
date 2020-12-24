@@ -88,7 +88,9 @@ The current site is static, and is hosted on GitHub pages, with the URL `college
 
 
 
-# Development
+# Development of Calculator
+This calculator lives under the `calculator` directory.
+
 Run
 ```
 npm install
@@ -107,4 +109,14 @@ Then simply run:
 npm start
 ```
 
-To get started. See the `package.json` file for other available types.
+To get started. See the `package.json` file for other available commands.
+
+## Publishing Calculator to Site
+
+The `index.html` files in the top-level has a link to the calculator. To update it, simply run:
+
+```
+npm run build
+```
+
+From within the `/calculator` directory. This will update the `/calculator/build` directory, which is linked to from the root `index.html`. 
